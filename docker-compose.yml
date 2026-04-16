@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qsandbox-backend
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL_NAME=${OLLAMA_MODEL_NAME:-myqwen:latest}
+      - SANDBOX_DOCKER_IMAGE=${SANDBOX_DOCKER_IMAGE:-gcc:13}
+      - SANDBOX_MEMORY_LIMIT=${SANDBOX_MEMORY_LIMIT:-256m}
+      - SANDBOX_CPU_QUOTA=${SANDBOX_CPU_QUOTA:-50000}
+      - SANDBOX_TIMEOUT_SECONDS=${SANDBOX_TIMEOUT_SECONDS:-5}
+      - SUBMISSION_TTL_MINUTES=${SUBMISSION_TTL_MINUTES:-15}
+      - MAX_SUBMISSIONS_IN_MEMORY=${MAX_SUBMISSIONS_IN_MEMORY:-300}
+      - ALLOWED_LANGUAGES=${ALLOWED_LANGUAGES:-cpp}
+      - MAX_SOURCE_CODE_LENGTH=${MAX_SOURCE_CODE_LENGTH:-20000}
+      - RATE_LIMIT_WINDOW_SECONDS=${RATE_LIMIT_WINDOW_SECONDS:-60}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-20}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: qsandbox-frontend
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      backend:
+        condition: service_healthy

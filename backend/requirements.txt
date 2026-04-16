@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sse-starlette
+httpx
+pydantic-settings
+python-dotenv
+docker
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
